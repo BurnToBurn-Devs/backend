@@ -82,7 +82,7 @@ jobs:
             port: 8080
     steps:
       - name: Deploy via SSH
-        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', matrix.branch)
+        if: github.ref == format('refs/heads/{0}', matrix.branch)
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
