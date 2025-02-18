@@ -1,0 +1,118 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      IMAGE_NAME: codinggroot/easy-schedule
+      IMAGE_TAG: ${{ github.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push multi-arch image with caching
+        run: |
+          echo "Event: ${GITHUB_EVENT_NAME}"
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            TARGET_BRANCH="${GITHUB_BASE_REF}"
+          else
+            TARGET_BRANCH="${GITHUB_REF#refs/heads/}"
+          fi
+          echo "Target branch: ${TARGET_BRANCH}"
+
+          if [ "${TARGET_BRANCH}" = "main" ]; then
+            echo "Building production image..."
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --cache-from=type=registry,ref=${IMAGE_NAME}:cache \
+              --cache-to=type=registry,ref=${IMAGE_NAME}:cache,mode=max \
+              -f Dockerfile \
+              -t ${IMAGE_NAME}:prod_${IMAGE_TAG} \
+              -t ${IMAGE_NAME}:latest \
+              --push .
+          elif [ "${TARGET_BRANCH}" = "develop" ]; then
+            echo "Building development image..."
+            docker buildx build \
+              --platform linux/amd64,linux/arm64 \
+              --cache-from=type=registry,ref=${IMAGE_NAME}:cache \
+              --cache-to=type=registry,ref=${IMAGE_NAME}:cache,mode=max \
+              -f Dockerfile \
+              -t ${IMAGE_NAME}:dev_${IMAGE_TAG} \
+              --push .
+          else
+            echo "Unsupported branch: ${TARGET_BRANCH}"
+            exit 1
+          fi
+
+  deploy:
+    runs-on: ubuntu-22.04
+    needs: build
+    env:
+      IMAGE_NAME: codinggroot/easy-schedule
+      DB_URL_PROD: ${{ secrets.DB_URL }}
+      DB_URL_DEV: ${{ secrets.DB_URL_DEVELOP }}
+    strategy:
+      matrix:
+        include:
+          - branch: main
+            container: easyshift_prod
+            port: 80
+          - branch: develop
+            container: easyshift_dev
+            port: 8080
+    steps:
+      - name: Deploy via SSH
+        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', matrix.branch)
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            if [ "${{ matrix.branch }}" = "main" ]; then
+              TAG="latest"
+              DB_URL="${{ env.DB_URL_PROD }}"
+            else
+              TAG="dev_${{ github.sha }}"
+              DB_URL="${{ env.DB_URL_DEV }}"
+            fi
+            echo "Pulling image: ${{ env.IMAGE_NAME }}:$TAG"
+            docker pull ${{ env.IMAGE_NAME }}:$TAG
+
+            echo "Stopping and removing container: ${{ matrix.container }}"
+            docker stop ${{ matrix.container }} || true
+            docker rm ${{ matrix.container }} || true
+
+            echo "Starting new container..."
+            docker run -d --restart unless-stopped \
+              --name ${{ matrix.container }} \
+              -p ${{ matrix.port }}:${{ secrets.SERVER_PORT }} \
+              --add-host=host.docker.internal:host-gateway \
+              -e SERVER_PORT="${{ secrets.SERVER_PORT }}" \
+              -e DB_URL="$DB_URL" \
+              -e DB_DRIVER="${{ secrets.DB_DRIVER }}" \
+              -e DB_DIALECT="${{ secrets.DB_DIALECT }}" \
+              -e DB_USERNAME="${{ secrets.DB_USERNAME }}" \
+              -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+              -e APPLICATION_OAUTH_CONFIG="${{ secrets.APPLICATION_OAUTH_CONFIG }}" \
+              ${{ env.IMAGE_NAME }}:$TAG
