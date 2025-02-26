@@ -106,7 +106,7 @@ jobs:
             echo "Starting new container..."
             docker run -d --restart unless-stopped \
               --name ${{ matrix.container }} \
-              -p ${{ matrix.port }}:${{ secrets.SERVER_PORT }} \
+              -p 127.0.0.1:${{ matrix.port }}:${{ secrets.SERVER_PORT }} \
               --add-host=host.docker.internal:host-gateway \
               -e SERVER_PORT="${{ secrets.SERVER_PORT }}" \
               -e DB_URL="$DB_URL" \
