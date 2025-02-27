@@ -2,6 +2,7 @@ package com.burntoburn.easyshift.service.schedule;
 
 import com.burntoburn.easyshift.dto.schedule.req.scheduleCreate.ScheduleRequest;
 import com.burntoburn.easyshift.entity.schedule.Schedule;
+
 import java.util.List;
 
 public interface ScheduleService {
@@ -18,4 +19,6 @@ public interface ScheduleService {
     // 매장별 스케줄 조회
     List<Schedule> getSchedulesByStore(Long storeId);
 
+    // 스케줄 자동 배정
+    void autoAssignSchedule(Long scheduleId);
 }
