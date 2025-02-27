@@ -1,7 +1,6 @@
 package com.burntoburn.easyshift.entity;
 
-import static org.junit.jupiter.api.Assertions.*;
-
+import com.burntoburn.easyshift.entity.leave.ApprovalStatus;
 import com.burntoburn.easyshift.entity.leave.LeaveRequest;
 import com.burntoburn.easyshift.entity.schedule.Schedule;
 import com.burntoburn.easyshift.entity.schedule.Shift;
@@ -12,7 +11,6 @@ import com.burntoburn.easyshift.repository.schedule.ScheduleRepository;
 import com.burntoburn.easyshift.repository.schedule.ShiftRepository;
 import com.burntoburn.easyshift.repository.store.StoreRepository;
 import com.burntoburn.easyshift.repository.user.UserRepository;
-import java.time.YearMonth;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,17 +19,25 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Transactional
 @SpringBootTest
 class EntityCreationTest {
 
-    @Autowired private UserRepository userRepository;
-    @Autowired private StoreRepository storeRepository;
-    @Autowired private ScheduleRepository scheduleRepository;
-    @Autowired private ShiftRepository shiftRepository;
-    @Autowired private LeaveRequestRepository leaveRequestRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private StoreRepository storeRepository;
+    @Autowired
+    private ScheduleRepository scheduleRepository;
+    @Autowired
+    private ShiftRepository shiftRepository;
+    @Autowired
+    private LeaveRequestRepository leaveRequestRepository;
 
     private Store store;
     private User user;
@@ -101,7 +107,7 @@ class EntityCreationTest {
     void shouldSetCreatedAtForLeaveRequest() {
         LeaveRequest leaveRequest = leaveRequestRepository.save(LeaveRequest.builder()
                 .date(LocalDate.now())
-                .approvalStatus(com.burntoburn.easyshift.entity.user.ApprovalStatus.PENDING)
+                .approvalStatus(ApprovalStatus.PENDING)
                 .user(user)
                 .schedule(schedule)
                 .build());
