@@ -40,4 +40,8 @@ public class Shift extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = true) // 초기 스케줄 생성시 user 정보는 음
     private User user;
+
+    public void assignUser(User user) {
+        this.user = user;
+    }
 }
