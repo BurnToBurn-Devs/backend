@@ -1,22 +1,22 @@
 package com.burntoburn.easyshift.service.leave.imp;
 
+import com.burntoburn.easyshift.entity.leave.ApprovalStatus;
 import com.burntoburn.easyshift.entity.leave.LeaveRequest;
-import com.burntoburn.easyshift.entity.user.ApprovalStatus;
 import com.burntoburn.easyshift.repository.leave.LeaveRequestRepository;
 import com.burntoburn.easyshift.service.leave.LeaveRequestAdminService;
 import com.burntoburn.easyshift.service.leave.LeaveRequestFactory;
-import java.time.LocalDate;
-import java.time.YearMonth;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.NoSuchElementException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -81,7 +81,7 @@ class LeaveRequestAdminServiceImpTest {
     @DisplayName("특정 월의 휴가 신청 조회 테스트")
     void getLeaveRequestsByMonth() {
         // Given
-        YearMonth scheduleMonth = YearMonth.of(2024,3);
+        YearMonth scheduleMonth = YearMonth.of(2024, 3);
 
         when(leaveRequestRepository.findAllByScheduleMonth(scheduleMonth)).thenReturn(List.of(leaveRequest));
 

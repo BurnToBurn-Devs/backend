@@ -1,4 +1,4 @@
-package com.burntoburn.easyshift.entity.user;
+package com.burntoburn.easyshift.entity.leave;
 
 public enum ApprovalStatus {
     PENDING,

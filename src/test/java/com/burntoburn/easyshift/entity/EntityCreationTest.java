@@ -1,5 +1,7 @@
 package com.burntoburn.easyshift.entity;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.burntoburn.easyshift.entity.leave.LeaveRequest;
 import com.burntoburn.easyshift.entity.schedule.Schedule;
 import com.burntoburn.easyshift.entity.schedule.Shift;
@@ -10,6 +12,7 @@ import com.burntoburn.easyshift.repository.schedule.ScheduleRepository;
 import com.burntoburn.easyshift.repository.schedule.ShiftRepository;
 import com.burntoburn.easyshift.repository.store.StoreRepository;
 import com.burntoburn.easyshift.repository.user.UserRepository;
+import java.time.YearMonth;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,10 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Transactional
 @SpringBootTest
@@ -46,7 +46,6 @@ class EntityCreationTest {
 
         user = userRepository.saveAndFlush(User.builder()
                 .email("test@example.com")
-                .name("홍길동")
                 .phoneNumber("010-1234-5678")
                 .role(com.burntoburn.easyshift.entity.user.Role.WORKER)
                 .avatarUrl("https://example.com/avatar.png")

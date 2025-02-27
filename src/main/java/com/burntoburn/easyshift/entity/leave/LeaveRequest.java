@@ -1,7 +1,6 @@
 package com.burntoburn.easyshift.entity.leave;
 
 import com.burntoburn.easyshift.entity.BaseEntity;
-import com.burntoburn.easyshift.entity.user.ApprovalStatus;
 import com.burntoburn.easyshift.entity.schedule.Schedule;
 import com.burntoburn.easyshift.entity.user.User;
 import jakarta.persistence.*;
@@ -43,11 +42,11 @@ public class LeaveRequest extends BaseEntity {
         return this;
     }
 
-    public void approvedRequest(){
+    public void approvedRequest() {
         this.approvalStatus = ApprovalStatus.APPROVED;
     }
 
-    public void rejectRequest(){
+    public void rejectRequest() {
         this.approvalStatus = ApprovalStatus.REJECTED;
     }
 }
