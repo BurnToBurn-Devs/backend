@@ -29,9 +29,9 @@ public class UserApiController {
         return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
     }
 
-    @GetMapping("/logout")
-    public String logout(HttpServletRequest request, HttpServletResponse response) {
-        new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
-        return "redirect:/login"; // frontend 경로로 리다렉트 수정?
-    }
+//    @GetMapping("/logout")
+//    public String logout(HttpServletRequest request, HttpServletResponse response) {
+//        new SecurityContextLogoutHandler().logout(request, response, SecurityContextHolder.getContext().getAuthentication());
+//        return "redirect:/login"; // frontend 경로로 리다렉트 수정?
+//    }
 }

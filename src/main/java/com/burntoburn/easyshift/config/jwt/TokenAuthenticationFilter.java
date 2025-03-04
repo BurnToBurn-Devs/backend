@@ -5,37 +5,48 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
 
+@Slf4j
 @RequiredArgsConstructor
+@Component
 public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
     private final TokenProvider tokenProvider;
-    private final static String HEADER_AUTHORIZATION = "Authorization";
-    private final static String TOKEN_PREFIX = "Bearer";
+    private static final String HEADER_AUTHORIZATION = "Authorization";
+    private static final String TOKEN_PREFIX = "Bearer ";
 
-    // 현재 access token이 유효할 경우에만 이용 가능
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-
-        String authorizationHeader = request.getHeader(HEADER_AUTHORIZATION);
-
-        String accessToken = getAccessToken(authorizationHeader);
-        // access token 을 검증하고 유효하다면 인증정보를 security context에 저장
-        if (tokenProvider.validToken(accessToken)) {
-            Authentication authentication = tokenProvider.getAuthentication(accessToken);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+        try {
+            getTokenFromRequest(request)
+                    .filter(tokenProvider::validToken)
+                    .ifPresent(this::setAuthentication);
+        } catch (Exception e) {
+            log.error("Error while setting JWT authentication", e);
+        } finally {
+            filterChain.doFilter(request, response);
         }
     }
 
-    private String getAccessToken(String authorizationHeader) {
-        if (authorizationHeader != null && authorizationHeader.startsWith("TOKEN_PREFIX")) {
-            return authorizationHeader.substring(TOKEN_PREFIX.length());
-        }
-        return null;
+    private Optional<String> getTokenFromRequest(HttpServletRequest request) {
+        return Optional.ofNullable(request.getHeader(HEADER_AUTHORIZATION))
+                .filter(header -> header.startsWith(TOKEN_PREFIX))
+                .map(header -> header.substring(TOKEN_PREFIX.length()));
     }
+
+    private void setAuthentication(String token) {
+        Authentication authentication = tokenProvider.getAuthentication(token);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        log.debug("Setting authentication to security context is done. '{}'", authentication.getName());
+    }
+
 }
