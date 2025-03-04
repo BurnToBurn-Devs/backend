@@ -1,13 +1,20 @@
 package com.burntoburn.easyshift.service.schedule.imp;
 
-import com.burntoburn.easyshift.dto.schedule.req.scheduleCreate.ScheduleRequest;
+import com.burntoburn.easyshift.dto.schedule.req.ScheduleUpload;
+import com.burntoburn.easyshift.dto.schedule.res.ScheduleDetailDTO;
+import com.burntoburn.easyshift.dto.schedule.res.ScheduleInfoResponse;
+import com.burntoburn.easyshift.dto.schedule.res.WorkerScheduleResponse;
+import com.burntoburn.easyshift.dto.store.SelectedScheduleTemplateDto;
 import com.burntoburn.easyshift.entity.leave.ApprovalStatus;
 import com.burntoburn.easyshift.entity.leave.LeaveRequest;
 import com.burntoburn.easyshift.entity.schedule.Schedule;
 import com.burntoburn.easyshift.entity.schedule.Shift;
 import com.burntoburn.easyshift.entity.store.Store;
 import com.burntoburn.easyshift.entity.templates.ScheduleTemplate;
+import com.burntoburn.easyshift.entity.templates.ShiftTemplate;
 import com.burntoburn.easyshift.exception.schedule.ScheduleException;
+import com.burntoburn.easyshift.exception.shift.ShiftException;
+import com.burntoburn.easyshift.exception.template.TemplateException;
 import com.burntoburn.easyshift.repository.leave.LeaveRequestRepository;
 import com.burntoburn.easyshift.repository.schedule.ScheduleRepository;
 import com.burntoburn.easyshift.repository.schedule.ScheduleTemplateRepository;
@@ -18,12 +25,20 @@ import com.burntoburn.easyshift.scheduler.ShiftAssignmentData;
 import com.burntoburn.easyshift.scheduler.ShiftAssignmentProcessor;
 import com.burntoburn.easyshift.service.schedule.ScheduleFactory;
 import com.burntoburn.easyshift.service.schedule.ScheduleService;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.List;
+
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
@@ -38,68 +53,110 @@ public class ScheduleServiceImp implements ScheduleService {
     private final ShiftAssignmentProcessor shiftAssignmentProcessor;
     private final AutoAssignmentScheduler autoAssignmentScheduler;
 
-    /**
-     * 스케줄 생성
-     */
+    // 스케줄 생성
     @Transactional
     @Override
-    public Schedule createSchedule(Long storeId, ScheduleRequest request) {
-        // Store 확인
-        Store store = storeRepository.findById(storeId)
-                .orElseThrow(() -> new NoSuchElementException("Store not found"));
+    public void createSchedule(ScheduleUpload upload) {
+        Store store = storeRepository.findById(upload.getStoreId())
+                .orElseThrow(ScheduleException::scheduleNotFound);
 
-        // scheduleTemplate 확인
-        ScheduleTemplate scheduleTemplate = scheduleTemplateRepository.findById(request.getScheduleTemplateId())
-                .orElseThrow(() -> new NoSuchElementException("ScheduleTemplate not found"));
+        ScheduleTemplate scheduleTemplate = scheduleTemplateRepository.findById(upload.getScheduleTemplateId())
+                .orElseThrow(TemplateException::scheduleTemplateNotFound);
 
-        // 스케줄 생성 (ScheduleFactory 활용)
-        Schedule schedule = scheduleFactory.createSchedule(store, scheduleTemplate, request);
-
-        // 스케줄 저장 및 반환
+        Schedule schedule = scheduleFactory.createSchedule(store, scheduleTemplate, upload);
         scheduleRepository.save(schedule);
-        return schedule;
     }
 
-    /**
-     * 스케줄 삭제
-     */
+    // 스케줄 삭제
     @Transactional
     @Override
     public void deleteSchedule(Long scheduleId) {
         Schedule schedule = scheduleRepository.findById(scheduleId)
-                .orElseThrow(() -> new NoSuchElementException("Schedule not found"));
+                .orElseThrow(ScheduleException::scheduleNotFound);
         scheduleRepository.delete(schedule);
     }
 
-    /**
-     * 스케줄 수정
-     */
-    @Transactional(readOnly = true)
+    // 매장 스케줄 목록 조회
     @Override
-    public Schedule updateSchedule(Long storeId, Long scheduleId, ScheduleRequest request) {
-        // 스케줄이 속해있는 매장 검증
+    public ScheduleInfoResponse getSchedulesByStore(Long storeId, Pageable pageable) {
+        Page<Schedule> schedulePage = Optional.of(scheduleRepository.findByStoreIdOrderByCreatedAtDesc(storeId, pageable))
+                .filter(page -> !page.isEmpty())
+                .orElseThrow(ScheduleException::scheduleNotFound);
 
-        // 기존 스케줄 조회
-        Schedule existingSchedule = scheduleRepository.findByIdAndStoreId(storeId, scheduleId)
-                .orElseThrow(() -> new NoSuchElementException("Schedule not found"));
-
-        // 변경 감지를 통해 자동 반영
-        return scheduleFactory.updateSchedule(existingSchedule, request);
+        return ScheduleInfoResponse.formEntity(schedulePage, schedulePage.isLast());
     }
 
+    // worker의 스케줄 조회
     @Override
-    @Transactional(readOnly = true)
-    public Schedule getScheduleWithShifts(Long scheduleId) {
-        return scheduleRepository.findByIdWithShifts(scheduleId)
-                .orElseThrow(() -> new NoSuchElementException("Schedule not found"));
+    public WorkerScheduleResponse getSchedulesByWorker(Long storeId, Long userId, String date) {
+        YearMonth scheduleMonth = YearMonth.parse(date, DateTimeFormatter.ofPattern("yyyy-MM"));
+
+        List<Schedule> workerSchedules = scheduleRepository.findWorkerSchedules(storeId, scheduleMonth, userId);
+        if (workerSchedules.isEmpty()) {
+            throw ScheduleException.scheduleNotFound();
+        }
+
+        Store store = workerSchedules.stream().findFirst()
+                .map(Schedule::getStore)
+                .orElseThrow(ScheduleException::scheduleNotFound);
+
+        return WorkerScheduleResponse.fromEntity(store, workerSchedules);
     }
 
-    /**
-     * 매장의 모든 스케줄 조회
-     */
+    // 스케줄 조회(일주일치)
     @Override
-    public List<Schedule> getSchedulesByStore(Long storeId) {
-        return scheduleRepository.findByStoreId(storeId);
+    public SelectedScheduleTemplateDto getWeeklySchedule(Long scheduleTemplateId, String date) {
+        LocalDate localDate = LocalDate.parse(date, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        LocalDate monday = localDate.with(DayOfWeek.MONDAY);
+        LocalDate endDate = monday.plusDays(6);
+
+        List<Schedule> schedules = scheduleRepository.findSchedulesWithTemplate(scheduleTemplateId);
+        if (schedules.isEmpty()) {
+            throw ScheduleException.scheduleNotFound();
+        }
+
+        List<Long> scheduleIds = schedules.stream().map(Schedule::getId).toList();
+        if (scheduleIds.isEmpty()) {
+            throw ScheduleException.scheduleNotFound();
+        }
+        List<Shift> shifts = shiftRepository.findShiftsByScheduleIdWithUser(scheduleIds, monday, endDate);
+        if (shifts.isEmpty()) {
+            throw ShiftException.shiftNotFound();
+        }
+
+
+        ScheduleTemplate scheduleTemplate = scheduleTemplateRepository
+                .findScheduleTemplateWithShiftsById(schedules.get(0).getScheduleTemplateId())
+                .orElseThrow(TemplateException::scheduleTemplateNotFound);
+
+        return SelectedScheduleTemplateDto.fromEntity(scheduleTemplate, shifts);
+    }
+
+    // 스케줄 조회(all)
+    @Transactional
+    @Override
+    public ScheduleDetailDTO getAllSchedules(Long scheduleId) {
+        Schedule schedule = scheduleRepository.findScheduleWithShifts(scheduleId)
+                .orElseThrow(ScheduleException::scheduleNotFound);
+
+        ScheduleTemplate scheduleTemplate = scheduleTemplateRepository
+                .findScheduleTemplateWithShiftsById(schedule.getScheduleTemplateId())
+                .orElseThrow(TemplateException::scheduleTemplateNotFound);
+
+        List<ShiftTemplate> shiftTemplates = scheduleTemplate.getShiftTemplates();
+        if (shiftTemplates == null) {
+            throw new IllegalStateException("Shift templates list is unexpectedly null");
+        }
+        if (shiftTemplates.isEmpty()) {
+            throw TemplateException.shiftTemplateNotFound();
+        }
+
+        List<Shift> shifts = schedule.getShifts();
+        if (shifts == null || shifts.isEmpty()) {
+            throw ShiftException.shiftNotFound();
+        }
+
+        return ScheduleDetailDTO.fromEntity(scheduleId, schedule.getScheduleName(), shiftTemplates, shifts);
     }
 
     @Override
@@ -109,17 +166,17 @@ public class ScheduleServiceImp implements ScheduleService {
                 .orElseThrow(ScheduleException::scheduleNotFound);
 
         List<Shift> shifts = shiftRepository.findAllBySchedule(schedule);
+        if (shifts == null || shifts.isEmpty()) {
+            throw ShiftException.shiftNotFound();
+        }
+
         List<LeaveRequest> leaveRequests = leaveRequestRepository.findAllByScheduleAndApprovalStatus(schedule, ApprovalStatus.APPROVED);
 
-        // 데이터 전처리: 정렬된 Shift, 사용자 목록, 최대 필요 인원수 계산
         ShiftAssignmentData assignmentData = shiftAssignmentProcessor.processData(shifts, leaveRequests);
-
-        // 현재 총 근무자 수가 최대 필요 인원수보다 적다면 예외 발생
         if (assignmentData.users().size() < assignmentData.maxRequired()) {
             throw ScheduleException.insufficientUsersForAssignment();
         }
 
-        // 스케줄 자동 배정
         autoAssignmentScheduler.assignShifts(assignmentData);
     }
 }

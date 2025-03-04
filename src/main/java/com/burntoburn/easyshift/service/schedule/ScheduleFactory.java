@@ -1,11 +1,10 @@
 package com.burntoburn.easyshift.service.schedule;
 
-import com.burntoburn.easyshift.dto.schedule.req.scheduleCreate.ScheduleRequest;
-import com.burntoburn.easyshift.dto.schedule.req.scheduleCreate.ShiftRequest;
+import com.burntoburn.easyshift.dto.schedule.req.ScheduleUpload;
+import com.burntoburn.easyshift.dto.schedule.req.ShiftDetail;
 import com.burntoburn.easyshift.entity.schedule.Schedule;
 import com.burntoburn.easyshift.entity.schedule.ScheduleStatus;
 import com.burntoburn.easyshift.entity.schedule.Shift;
-import com.burntoburn.easyshift.entity.schedule.collection.Shifts;
 import com.burntoburn.easyshift.entity.store.Store;
 import com.burntoburn.easyshift.entity.templates.ScheduleTemplate;
 import com.burntoburn.easyshift.entity.templates.ShiftTemplate;
@@ -20,28 +19,29 @@ import java.util.Map;
 @Component
 public class ScheduleFactory {
 
-    public Schedule createSchedule(Store store, ScheduleTemplate scheduleTemplate, ScheduleRequest request) {
+    public Schedule createSchedule(Store store, ScheduleTemplate scheduleTemplate, ScheduleUpload request) {
         Schedule schedule = Schedule.builder()
                 .scheduleName(request.getScheduleName())
                 .scheduleMonth(request.getScheduleMonth())
                 .scheduleStatus(ScheduleStatus.PENDING)
                 .scheduleTemplateId(scheduleTemplate.getId()) // Schedule 테이블에 scheduleTemplateId 저장
+                .description(request.getDescription())
                 .store(store)
                 .shifts(new ArrayList<>())
                 .build();
 
-        List<ShiftRequest> shiftDetails = request.getShiftDetails();
+        List<ShiftDetail> shiftDetails = request.getShiftDetails();
         List<Shift> shifts = createShifts(schedule, scheduleTemplate, shiftDetails);
         schedule.getShifts().addAll(shifts);
         return schedule;
     }
 
-    public List<Shift> createShifts(Schedule schedule, ScheduleTemplate scheduleTemplate, List<ShiftRequest> shiftDetails) {
+    public List<Shift> createShifts(Schedule schedule, ScheduleTemplate scheduleTemplate, List<ShiftDetail> shiftDetails) {
         YearMonth scheduleMonth = schedule.getScheduleMonth();
         int daysInMonth = scheduleMonth.lengthOfMonth();
         Map<Long, Integer> shiftWorkerMap = new HashMap<>();
 
-        for (ShiftRequest shiftRequest : shiftDetails) {
+        for (ShiftDetail shiftRequest : shiftDetails) {
             shiftWorkerMap.put(shiftRequest.getShiftTemplateId(), shiftRequest.getExpectedWorkers());
         }
 
@@ -74,18 +74,10 @@ public class ScheduleFactory {
                 .schedule(schedule)
                 .shiftDate(schedule.getScheduleMonth().atDay(day))
                 .shiftName(shiftTemplate.getShiftTemplateName())
+                .shiftTemplateId(shiftTemplate.getId())
                 .startTime(shiftTemplate.getStartTime())
                 .endTime(shiftTemplate.getEndTime())
                 .user(null)
                 .build();
-    }
-
-    public Schedule updateSchedule(Schedule schedule, ScheduleRequest request) {
-        schedule.updateSchedule(
-                request.getScheduleName(),
-                request.getScheduleMonth(),
-                schedule.getShifts()
-        );
-        return schedule;
     }
 }

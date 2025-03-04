@@ -1,92 +1,47 @@
 package com.burntoburn.easyshift.service.schedule.imp;
 
-import com.burntoburn.easyshift.dto.schedule.req.scheduleCreate.ScheduleRequest;
-import com.burntoburn.easyshift.dto.schedule.req.scheduleCreate.ShiftRequest;
+
+
 import com.burntoburn.easyshift.entity.schedule.Schedule;
-import com.burntoburn.easyshift.entity.schedule.ScheduleStatus;
+import com.burntoburn.easyshift.entity.schedule.Shift;
 import com.burntoburn.easyshift.entity.store.Store;
 import com.burntoburn.easyshift.entity.templates.ScheduleTemplate;
-import com.burntoburn.easyshift.entity.templates.ShiftTemplate;
+
 import com.burntoburn.easyshift.repository.schedule.ScheduleRepository;
 import com.burntoburn.easyshift.repository.schedule.ScheduleTemplateRepository;
-import com.burntoburn.easyshift.repository.schedule.ShiftRepository; // ✅ ShiftRepository 추가
+import com.burntoburn.easyshift.repository.schedule.ShiftRepository;
 import com.burntoburn.easyshift.repository.store.StoreRepository;
-import com.burntoburn.easyshift.service.schedule.ScheduleService;
-import java.time.LocalTime;
-import java.time.YearMonth;
-import org.junit.jupiter.api.BeforeEach;
+import com.burntoburn.easyshift.service.schedule.ScheduleFactory;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 class ScheduleServiceImpTest {
 
-    @Autowired
-    private ScheduleService scheduleService;
+    @InjectMocks
+    private ScheduleServiceImp scheduleService;
 
-    @MockitoBean
-    private ScheduleTemplateRepository scheduleTemplateRepository;
-
-    @MockitoBean
+    @Mock
     private ScheduleRepository scheduleRepository;
-
-    @MockitoBean
+    @Mock
+    private ScheduleTemplateRepository scheduleTemplateRepository;
+    @Mock
+    private ShiftRepository shiftRepository;
+    @Mock
     private StoreRepository storeRepository;
-
-    @MockitoBean
-    private ShiftRepository shiftRepository; // ✅ ShiftRepository 추가
+    @Mock
+    private ScheduleFactory scheduleFactory;
 
     private Store store;
     private ScheduleTemplate scheduleTemplate;
-    private Schedule existingSchedule;
-
-    @BeforeEach
-    void setUp() {
-        store = Store.builder()
-                .id(1L)
-                .build();
-
-        scheduleTemplate = ScheduleTemplate.builder()
-                .id(1L)
-                .scheduleTemplateName("Morning Shift")
-                .store(store)
-                .build();
-
-        // ✅ ShiftTemplate 추가
-        ShiftTemplate shift1 = ShiftTemplate.builder()
-                .id(1L)
-                .shiftTemplateName("Morning Shift")
-                .startTime(LocalTime.of(9, 0))
-                .endTime(LocalTime.of(17, 0))
-                .build();
-
-        ShiftTemplate shift2 = ShiftTemplate.builder()
-                .id(2L)
-                .shiftTemplateName("Evening Shift")
-                .startTime(LocalTime.of(14, 0))
-                .endTime(LocalTime.of(22, 0))
-                .build();
-
-        scheduleTemplate.getShiftTemplates().addAll(List.of(shift1, shift2));
-
-        existingSchedule = Schedule.builder()
-                .id(1L)
-                .scheduleName("March Schedule")
-                .scheduleMonth(YearMonth.of(2024, 3))
-                .scheduleStatus(ScheduleStatus.PENDING)
-                .store(store)
-                .build();
-    }
+    private Schedule schedule;
+    private Shift shift;
 
 
     @Test

@@ -29,7 +29,7 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
      * - Shift에 배정된 User 정보를 LEFT JOIN FETCH하여 함께 조회
      */
     @Query("""
-            SELECT sh FROM Shift sh 
+           SELECT sh FROM Shift sh 
             JOIN FETCH sh.schedule sch 
             JOIN FETCH sch.store st  
             LEFT JOIN FETCH sh.user u 
@@ -44,4 +44,23 @@ public interface ShiftRepository extends JpaRepository<Shift, Long> {
             @Param("endDate") LocalDate endDate
     );
 
+
+    @Query("""
+            SELECT sh FROM Shift sh 
+            JOIN FETCH sh.schedule sch 
+            LEFT JOIN FETCH sh.user u 
+            WHERE sch.id = :scheduleId 
+            """)
+    List<Shift> findAllByScheduleId(@Param("scheduleId") Long scheduleId);
+
+
+    @Query("""
+            SELECT sh FROM Shift sh 
+            JOIN FETCH sh.user u
+            WHERE sh.schedule.id IN :scheduleIds 
+            AND sh.shiftDate BETWEEN :startDate AND :endDate
+        """)
+    List<Shift> findShiftsByScheduleIdWithUser(@Param("scheduleIds") List<Long> scheduleIds,
+                                               @Param("startDate") LocalDate startDate,
+                                               @Param("endDate") LocalDate endDate);
 }
