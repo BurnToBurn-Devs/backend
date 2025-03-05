@@ -1,9 +1,9 @@
 package com.burntoburn.easyshift.entity;
 
-import static org.junit.jupiter.api.Assertions.*;
-
+import com.burntoburn.easyshift.entity.leave.ApprovalStatus;
 import com.burntoburn.easyshift.entity.leave.LeaveRequest;
 import com.burntoburn.easyshift.entity.schedule.Schedule;
+import com.burntoburn.easyshift.entity.schedule.ScheduleStatus;
 import com.burntoburn.easyshift.entity.schedule.Shift;
 import com.burntoburn.easyshift.entity.store.Store;
 import com.burntoburn.easyshift.entity.user.User;
@@ -20,17 +20,26 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.UUID;
+
+import static com.burntoburn.easyshift.entity.user.Role.WORKER;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Transactional
 @SpringBootTest
 class EntityCreationTest {
 
-    @Autowired private UserRepository userRepository;
-    @Autowired private StoreRepository storeRepository;
-    @Autowired private ScheduleRepository scheduleRepository;
-    @Autowired private ShiftRepository shiftRepository;
-    @Autowired private LeaveRequestRepository leaveRequestRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private StoreRepository storeRepository;
+    @Autowired
+    private ScheduleRepository scheduleRepository;
+    @Autowired
+    private ShiftRepository shiftRepository;
+    @Autowired
+    private LeaveRequestRepository leaveRequestRepository;
 
     private Store store;
     private User user;
@@ -44,17 +53,17 @@ class EntityCreationTest {
                 .build());
 
         user = userRepository.saveAndFlush(User.builder()
+                .name("test")
                 .email("test@example.com")
                 .phoneNumber("010-1234-5678")
-                .role(com.burntoburn.easyshift.entity.user.Role.WORKER)
+                .role(WORKER)
                 .avatarUrl("https://example.com/avatar.png")
                 .build());
 
         schedule = scheduleRepository.save(Schedule.builder()
                 .scheduleName("Test Schedule")
-                .scheduleMonth("2024-11")
-                .description("Test Description")
-                .scheduleStatus(com.burntoburn.easyshift.entity.schedule.ScheduleStatus.PENDING)
+                .scheduleMonth(YearMonth.of(2024, 11))
+                .scheduleStatus(ScheduleStatus.PENDING)
                 .store(store)
                 .build());
     }
@@ -101,7 +110,7 @@ class EntityCreationTest {
     void shouldSetCreatedAtForLeaveRequest() {
         LeaveRequest leaveRequest = leaveRequestRepository.save(LeaveRequest.builder()
                 .date(LocalDate.now())
-                .approvalStatus(com.burntoburn.easyshift.entity.user.ApprovalStatus.PENDING)
+                .approvalStatus(ApprovalStatus.PENDING)
                 .user(user)
                 .schedule(schedule)
                 .build());

@@ -1,13 +1,9 @@
 package com.burntoburn.easyshift.entity;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import com.burntoburn.easyshift.entity.store.Store;
 import com.burntoburn.easyshift.entity.user.User;
 import com.burntoburn.easyshift.repository.store.StoreRepository;
 import com.burntoburn.easyshift.repository.user.UserRepository;
-import java.time.LocalDateTime;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,11 +11,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import static com.burntoburn.easyshift.entity.user.Role.WORKER;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 @SpringBootTest
 class EntityUpdateTest {
 
-    @Autowired private UserRepository userRepository;
-    @Autowired private StoreRepository storeRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private StoreRepository storeRepository;
 
     private Store store;
     private User user;
@@ -33,8 +38,9 @@ class EntityUpdateTest {
 
         user = userRepository.save(User.builder()
                 .email("test@example.com")
+                .name("홍길동")
                 .phoneNumber("010-1234-5678")
-                .role(com.burntoburn.easyshift.entity.user.Role.WORKER)
+                .role(WORKER)
                 .avatarUrl("https://example.com/avatar.png")
                 .build());
     }
@@ -73,7 +79,8 @@ class EntityUpdateTest {
 
         // When (User 이메일 변경 후 저장)
         user = userRepository.findById(user.getId()).orElseThrow();
-        user.updateEmail("updated@example.com");
+
+        user.update("updated@example.com");
         userRepository.saveAndFlush(user); // save()만 호출
 
         // Then

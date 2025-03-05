@@ -1,21 +1,35 @@
 package com.burntoburn.easyshift.service.schedule;
 
+import com.burntoburn.easyshift.dto.schedule.req.ScheduleUpload;
+import com.burntoburn.easyshift.dto.schedule.res.ScheduleDetailDTO;
+import com.burntoburn.easyshift.dto.schedule.res.ScheduleInfoResponse;
 
-import com.burntoburn.easyshift.dto.schedule.req.ScheduleRequest;
-import com.burntoburn.easyshift.dto.schedule.res.ScheduleResponse;
+import com.burntoburn.easyshift.dto.schedule.res.WorkerScheduleResponse;
+import com.burntoburn.easyshift.dto.store.SelectedScheduleTemplateDto;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 
 public interface ScheduleService {
 
     // 스케줄 생성
-    ScheduleResponse createSchedule(ScheduleRequest request);
+    void createSchedule(ScheduleUpload upload);
 
     // 스케줄 삭제
     void deleteSchedule(Long scheduleId);
 
-    // 스케줄 조회 (매장)
-    List<ScheduleResponse> getSchedulesByStore(Long storeId);
+    // 매장 스케줄 목록 조회
+    ScheduleInfoResponse getSchedulesByStore(Long storeId, Pageable pageable);
 
-    // 스케줄 조회 (근로자) - 자신의 특정 스케줄(월 단위) 조회
-    List<ScheduleResponse> getSchedulesByWorker(Long storeId, Long userId, String date);
+    // worker의 스케줄 조회
+    WorkerScheduleResponse getSchedulesByWorker(Long storeId, Long userId, String date);
+
+    // 스케줄 조회 (일주일치)
+    SelectedScheduleTemplateDto getWeeklySchedule(Long scheduleTemplateId, String date);
+
+    // 스케줄 조회 (all)
+    ScheduleDetailDTO getAllSchedules(Long scheduleId);
+
+
+    // 스케줄 자동 배정
+    void autoAssignSchedule(Long scheduleId);
 }

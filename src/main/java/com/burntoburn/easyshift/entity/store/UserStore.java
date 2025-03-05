@@ -15,6 +15,7 @@ public class UserStore {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Setter(AccessLevel.NONE)
+    @Column(name = "user_store_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
