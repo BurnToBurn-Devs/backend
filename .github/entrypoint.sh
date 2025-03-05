@@ -22,6 +22,7 @@ spring.jpa.properties.hibernate.dialect=$DB_DIALECT
 spring.datasource.username=$DB_USERNAME
 spring.datasource.password=$DB_PASSWORD
 serverTimezone=UTC&characterEncoding=UTF-8
+server.forward-headers-strategy=native
 EOF
 else
   echo "Environment variables not set. Skipping production config generation."
